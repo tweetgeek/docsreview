@@ -166,25 +166,27 @@ export async function addComment(root: string, input: NewComment): Promise<strin
   if (typeof line !== 'number' || !Number.isInteger(line) || line < 1 || line > disk.lines.length) {
     throw new HttpError(400, 'Nieprawidłowy numer linii');
   }
-  await saveSnapshot(root, disk.content);
   const id = randomUUID();
-  await updateState(root, (state) => ({
-    ...state,
-    comments: [
-      ...state.comments,
-      {
-        id,
-        file,
-        text,
-        status: 'open',
-        createdAt: new Date().toISOString(),
-        resolvedAt: null,
-        handedOffAt: null,
-        checkedAt: null,
-        anchor: { snapshot: disk.hash, line, lineText: disk.lines[line - 1] ?? '' },
-      },
-    ],
-  }));
+  await updateState(root, async (state) => {
+    await saveSnapshot(root, disk.content);
+    return {
+      ...state,
+      comments: [
+        ...state.comments,
+        {
+          id,
+          file,
+          text,
+          status: 'open',
+          createdAt: new Date().toISOString(),
+          resolvedAt: null,
+          handedOffAt: null,
+          checkedAt: null,
+          anchor: { snapshot: disk.hash, line, lineText: disk.lines[line - 1] ?? '' },
+        },
+      ],
+    };
+  });
   return id;
 }
 
@@ -209,43 +211,52 @@ export async function patchComment(root: string, id: string, patch: CommentPatch
 }
 
 export async function deleteComment(root: string, id: string): Promise<void> {
-  const state = await updateState(root, (current) => {
-    if (!current.comments.some((comment) => comment.id === id)) throw new HttpError(404, 'Komentarz nie istnieje');
-    return { ...current, comments: current.comments.filter((comment) => comment.id !== id) };
-  });
-  await collectGarbage(root, state);
+  await updateState(
+    root,
+    (current) => {
+      if (!current.comments.some((comment) => comment.id === id)) throw new HttpError(404, 'Komentarz nie istnieje');
+      return { ...current, comments: current.comments.filter((comment) => comment.id !== id) };
+    },
+    (state) => collectGarbage(root, state),
+  );
 }
 
 export async function deleteResolved(root: string): Promise<void> {
-  const state = await updateState(root, (current) => ({
-    ...current,
-    comments: current.comments.filter((comment) => comment.status !== 'resolved'),
-  }));
-  await collectGarbage(root, state);
+  await updateState(
+    root,
+    (current) => ({
+      ...current,
+      comments: current.comments.filter((comment) => comment.status !== 'resolved'),
+    }),
+    (state) => collectGarbage(root, state),
+  );
 }
 
 export async function handoff(root: string): Promise<void> {
-  const state = await updateState(root, async (current) => {
-    const scanned = await scanFiles(root, {
-      showIgnored: current.showIgnored,
-      alwaysInclude: commentedFiles(current),
-    });
-    const disks = new Map<string, DiskFile>();
-    for (const entry of scanned) {
-      const disk = await safeRead(root, entry.path);
-      if (disk !== null) disks.set(entry.path, disk);
-    }
-    const open = current.comments.filter((comment) => comment.status === 'open' && disks.has(comment.file));
-    if (open.length === 0) throw new HttpError(409, 'Brak otwartych komentarzy do przekazania');
+  await updateState(
+    root,
+    async (current) => {
+      const scanned = await scanFiles(root, {
+        showIgnored: current.showIgnored,
+        alwaysInclude: commentedFiles(current),
+      });
+      const disks = new Map<string, DiskFile>();
+      for (const entry of scanned) {
+        const disk = await safeRead(root, entry.path);
+        if (disk !== null) disks.set(entry.path, disk);
+      }
+      const open = current.comments.filter((comment) => comment.status === 'open' && disks.has(comment.file));
+      if (open.length === 0) throw new HttpError(409, 'Brak otwartych komentarzy do przekazania');
 
-    const cache: SnapshotCache = new Map();
-    for (const comment of open) await snapshotLines(root, comment.anchor.snapshot, cache);
-    const files = new Map<string, CurrentFile>();
-    for (const [file, disk] of disks) {
-      await saveSnapshot(root, disk.content);
-      files.set(file, { lines: disk.lines, hash: disk.hash });
-    }
-    return performHandoff(current, files, cache, new Date().toISOString());
-  });
-  await collectGarbage(root, state);
+      const cache: SnapshotCache = new Map();
+      for (const comment of open) await snapshotLines(root, comment.anchor.snapshot, cache);
+      const files = new Map<string, CurrentFile>();
+      for (const [file, disk] of disks) {
+        await saveSnapshot(root, disk.content);
+        files.set(file, { lines: disk.lines, hash: disk.hash });
+      }
+      return performHandoff(current, files, cache, new Date().toISOString());
+    },
+    (state) => collectGarbage(root, state),
+  );
 }

@@ -182,6 +182,21 @@ describe('changing comments', () => {
     await deleteResolved(ws.root);
     expect((await listComments(ws.root)).comments.map((view) => view.text)).toEqual(['drugi']);
   });
+
+  it('keeps the snapshot of a comment added while resolved comments are being deleted', async () => {
+    await ws.write('a.md', 'one\ntwo\n');
+    await ws.write('b.md', 'first\nsecond\n');
+    const resolved = await comment('a.md', 1, 'stary');
+    await patchComment(ws.root, resolved, { status: 'resolved' });
+    const view = await getFileView(ws.root, 'b.md');
+    await Promise.all([
+      deleteResolved(ws.root),
+      addComment(ws.root, { file: 'b.md', line: 2, text: 'nowy', contentHash: view.contentHash }),
+    ]);
+    await ws.write('b.md', 'zero\nfirst\nsecond\n');
+    const [added] = (await getFileView(ws.root, 'b.md')).comments;
+    expect(added).toMatchObject({ text: 'nowy', currentLine: 3, lineChanged: false });
+  });
 });
 
 describe('output and missing files', () => {
