@@ -15,6 +15,10 @@ await fs.writeFile(path.join(work, 'root/docs/guide.md'), guide);
 if (name === 'comments') {
   await fs.writeFile(path.join(work, 'root/docs/Plan wdrożenia #2.md'), '# Plan\n\nTreść planu.\n');
   await fs.writeFile(path.join(work, 'root/docs/links.md'), '# Linki\n\nZobacz [przewodnik](guide.md).\n');
+  await fs.writeFile(
+    path.join(work, 'root/docs/syntax.md'),
+    ['# Składnia', '', 'Uruchom `npm start` i **poczekaj**.', '', '- krok pierwszy', '', '```sh', 'npm install', '```', ''].join('\n'),
+  );
 }
 
 if (name === 'ignored') {

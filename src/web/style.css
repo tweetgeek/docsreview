@@ -12,6 +12,12 @@
   --danger: #b3261e;
   --danger-soft: #fbe9e7;
   --ok-soft: #e4f4e7;
+  --md-heading: #0b4fb3;
+  --md-marker: #b3541e;
+  --md-code: #1a7f5a;
+  --md-link: #2459d6;
+  --md-tag: #8a3ea8;
+  --pane-max: 900px;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color-scheme: light dark;
 }
@@ -31,6 +37,11 @@
     --danger: #ff8a80;
     --danger-soft: #45221f;
     --ok-soft: #1f3a26;
+    --md-heading: #8ab4ff;
+    --md-marker: #f0a36b;
+    --md-code: #7fd4a8;
+    --md-link: #7da2ff;
+    --md-tag: #d7a3f0;
   }
 }
 
@@ -162,6 +173,11 @@ button.primary:hover:not(:disabled) {
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  container-type: inline-size;
+}
+
+.main > .toolbar {
+  padding-inline: max(12px, calc((100% - 2 * var(--pane-max)) / 2 + 12px));
 }
 
 .empty {
@@ -195,6 +211,7 @@ button.primary:hover:not(:disabled) {
 .panes {
   display: flex;
   flex: 1;
+  justify-content: center;
   min-height: 0;
 }
 
@@ -203,10 +220,21 @@ button.primary:hover:not(:disabled) {
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  max-width: var(--pane-max);
 }
 
 .pane + .pane {
   border-left: 1px solid var(--border);
+}
+
+@container (min-width: 1801px) {
+  .pane:first-child {
+    border-left: 1px solid var(--border);
+  }
+
+  .pane:last-child {
+    border-right: 1px solid var(--border);
+  }
 }
 
 .pane-title {
@@ -349,6 +377,45 @@ button.primary:hover:not(:disabled) {
   min-width: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.md-heading {
+  color: var(--md-heading);
+  font-weight: 700;
+}
+
+.md-marker,
+.md-quote,
+.md-rule {
+  color: var(--md-marker);
+}
+
+.md-code,
+.md-inline-code {
+  color: var(--md-code);
+}
+
+.md-fence,
+.md-link-url,
+.md-meta-delimiter {
+  color: var(--text-soft);
+}
+
+.md-strong {
+  font-weight: 700;
+}
+
+.md-emphasis {
+  font-style: italic;
+}
+
+.md-link-text {
+  color: var(--md-link);
+}
+
+.md-tag,
+.md-meta-key {
+  color: var(--md-tag);
 }
 
 .add {
@@ -572,16 +639,31 @@ button.primary:hover:not(:disabled) {
 
 /* Comments view */
 
+.comments-view {
+  justify-content: center;
+}
+
 .comments-list,
 .output {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-width: 0;
+  max-width: var(--pane-max);
 }
 
 .output {
   border-left: 1px solid var(--border);
+}
+
+@media (min-width: 1801px) {
+  .comments-list {
+    border-left: 1px solid var(--border);
+  }
+
+  .output {
+    border-right: 1px solid var(--border);
+  }
 }
 
 .filters {

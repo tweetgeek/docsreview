@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { splitLines } from '../../core/lines.js';
 import type { CommentView, FileView } from '../../core/types.js';
+import { highlightMarkdown } from '../lib/highlight.js';
 import { startDraft, store, submitDraft } from '../state.js';
 import { t } from '../strings.js';
 import CommentCard from './CommentCard.vue';
@@ -10,6 +11,7 @@ import CommentForm from './CommentForm.vue';
 const props = defineProps<{ view: FileView; comments: CommentView[] }>();
 
 const lines = computed(() => splitLines(props.view.content));
+const highlighted = computed(() => highlightMarkdown(lines.value));
 const changed = computed(() => new Set(props.view.changedLines));
 
 const byLine = computed(() => {
@@ -35,7 +37,7 @@ function setDraftText(text: string): void {
 
 <template>
   <div class="raw">
-    <template v-for="(text, index) in rows" :key="index">
+    <template v-for="(_text, index) in rows" :key="index">
       <div class="raw-line" :class="{ changed: changed.has(index + 1) }" :data-line-start="index + 1">
         <span class="raw-number">{{ index + 1 }}</span>
         <button
@@ -48,7 +50,14 @@ function setDraftText(text: string): void {
         >
           +
         </button>
-        <span class="raw-text">{{ text }}</span>
+        <span class="raw-text">
+          <span
+            v-for="(segment, segmentIndex) in highlighted[index] ?? []"
+            :key="segmentIndex"
+            :class="segment.kind === null ? undefined : `md-${segment.kind}`"
+            >{{ segment.text }}</span
+          >
+        </span>
       </div>
       <div v-if="byLine.has(index + 1) || hasDraft(index + 1)" class="raw-comments">
         <CommentCard v-for="comment in byLine.get(index + 1)" :key="comment.id" :comment="comment" pane="raw" />

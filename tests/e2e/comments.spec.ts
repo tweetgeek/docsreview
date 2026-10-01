@@ -180,3 +180,54 @@ test('an edit of a comment in the rendered pane survives a change of the open fi
   await fs.writeFile(GUIDE, original);
   await expect(render.locator('p', { hasText: 'Dopisana na górze.' })).toHaveCount(0);
 });
+
+test('the raw pane highlights markdown syntax without changing the text', async ({ page }) => {
+  await page.goto('/?token=e2e');
+  await page.locator('.tree-file', { hasText: 'syntax.md' }).click();
+  await expect(page.locator('.file-path')).toHaveText('docs/syntax.md');
+  const lines = page.locator('[data-pane="raw"] .raw-line');
+
+  await expect(lines.nth(0).locator('.md-heading')).toHaveText('# Składnia');
+  await expect(lines.nth(2).locator('.md-inline-code')).toHaveText('`npm start`');
+  await expect(lines.nth(2).locator('.md-strong')).toHaveText('**poczekaj**');
+  await expect(lines.nth(4).locator('.md-marker')).toHaveText('-');
+  await expect(lines.nth(6).locator('.md-fence')).toHaveText('```sh');
+  await expect(lines.nth(7).locator('.md-code')).toHaveText('npm install');
+
+  const text = await lines.nth(2).locator('.raw-text').evaluate((element) => element.textContent);
+  expect(text).toBe('Uruchom `npm start` i **poczekaj**.');
+  const headingColor = await lines.nth(0).locator('.md-heading').evaluate((element) => getComputedStyle(element).color);
+  const plainColor = await lines.nth(4).locator('.raw-text').evaluate((element) => getComputedStyle(element).color);
+  expect(headingColor).not.toBe(plainColor);
+});
+
+test('panes keep a readable width on an ultrawide window', async ({ page }) => {
+  await page.setViewportSize({ width: 3440, height: 1200 });
+  await page.goto('/?token=e2e');
+  await page.locator('.tree-file', { hasText: 'syntax.md' }).click();
+  await expect(page.locator('.file-path')).toHaveText('docs/syntax.md');
+
+  const main = (await page.locator('.main').boundingBox())!;
+  const raw = (await page.locator('.pane').nth(0).boundingBox())!;
+  const render = (await page.locator('.pane').nth(1).boundingBox())!;
+  expect(raw.width).toBeLessThanOrEqual(900);
+  expect(render.width).toBeLessThanOrEqual(900);
+  expect(Math.abs(raw.x + raw.width - render.x)).toBeLessThanOrEqual(1);
+  const leftGap = raw.x - main.x;
+  const rightGap = main.x + main.width - (render.x + render.width);
+  expect(leftGap).toBeGreaterThan(100);
+  expect(Math.abs(leftGap - rightGap)).toBeLessThanOrEqual(2);
+
+  await page.getByRole('button', { name: /^Komentarze/ }).click();
+  const list = (await page.locator('.comments-list').boundingBox())!;
+  const output = (await page.locator('.output').boundingBox())!;
+  expect(list.width).toBeLessThanOrEqual(900);
+  expect(output.width).toBeLessThanOrEqual(900);
+  expect(Math.abs(list.x - (3440 - (output.x + output.width)))).toBeLessThanOrEqual(2);
+
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.getByRole('button', { name: 'Pliki' }).click();
+  await expect(page.locator('.file-path')).toHaveText('docs/syntax.md');
+  const narrow = (await page.locator('.pane').nth(0).boundingBox())!;
+  expect(Math.abs(narrow.width - (1280 - 280) / 2)).toBeLessThanOrEqual(1);
+});
