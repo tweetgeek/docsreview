@@ -36,6 +36,14 @@ export interface CommentPatch {
   checked?: unknown;
 }
 
+async function collectGarbageSafely(root: string, state: ReviewState): Promise<void> {
+  try {
+    await collectGarbage(root, state);
+  } catch (error) {
+    console.warn(`DocsReview: nie udało się usunąć nieużywanych kopii plików: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 function commentedFiles(state: ReviewState): string[] {
   return [...new Set(state.comments.map((comment) => comment.file))];
 }
@@ -217,7 +225,7 @@ export async function deleteComment(root: string, id: string): Promise<void> {
       if (!current.comments.some((comment) => comment.id === id)) throw new HttpError(404, 'Komentarz nie istnieje');
       return { ...current, comments: current.comments.filter((comment) => comment.id !== id) };
     },
-    (state) => collectGarbage(root, state),
+    (state) => collectGarbageSafely(root, state),
   );
 }
 
@@ -228,7 +236,7 @@ export async function deleteResolved(root: string): Promise<void> {
       ...current,
       comments: current.comments.filter((comment) => comment.status !== 'resolved'),
     }),
-    (state) => collectGarbage(root, state),
+    (state) => collectGarbageSafely(root, state),
   );
 }
 
@@ -257,6 +265,6 @@ export async function handoff(root: string): Promise<void> {
       }
       return performHandoff(current, files, cache, new Date().toISOString());
     },
-    (state) => collectGarbage(root, state),
+    (state) => collectGarbageSafely(root, state),
   );
 }
