@@ -91,6 +91,7 @@ export async function saveState(state: ReviewState): Promise<void> {
 export function updateState(
   root: string,
   mutate: (state: ReviewState) => ReviewState | Promise<ReviewState>,
+  afterSave?: (state: ReviewState) => void | Promise<void>,
 ): Promise<ReviewState> {
   const previous = queues.get(root) ?? Promise.resolve();
   const next = previous
@@ -98,6 +99,7 @@ export function updateState(
     .then(async () => {
       const state = await mutate(await loadState(root));
       await saveState(state);
+      if (afterSave !== undefined) await afterSave(state);
       return state;
     });
   queues.set(root, next);

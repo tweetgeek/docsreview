@@ -101,6 +101,21 @@ describe('state', () => {
     const ids = (await loadState(ws.root)).comments.map((comment) => comment.id);
     expect(ids).toEqual(['mine', 'theirs', 'mine-2']);
   });
+
+  it('runs the afterSave callback inside the queue, after the state is on disk', async () => {
+    const seen: string[] = [];
+    await Promise.all([
+      updateState(
+        ws.root,
+        (state) => ({ ...state, comments: [...state.comments, makeComment({ id: 'first' })] }),
+        async () => {
+          seen.push((await loadState(ws.root)).comments.map((comment) => comment.id).join(','));
+        },
+      ),
+      updateState(ws.root, (state) => ({ ...state, comments: [...state.comments, makeComment({ id: 'second' })] })),
+    ]);
+    expect(seen).toEqual(['first']);
+  });
 });
 
 describe('recent directories', () => {
