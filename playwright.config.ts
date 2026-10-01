@@ -4,6 +4,7 @@ import { defineConfig } from '@playwright/test';
 const servers = [
   { name: 'comments', port: 4599 },
   { name: 'ignored', port: 4600 },
+  { name: 'round', port: 4601 },
 ];
 
 export default defineConfig({
