@@ -178,6 +178,28 @@ describe('watchRoot', () => {
     }
   });
 
+  it.skipIf(process.getuid?.() === 0)('keeps watching when a subdirectory cannot be read', async () => {
+    await ws.write('ok.md', 'one\n');
+    await ws.write('locked/secret.md', 'x\n');
+    await fs.chmod(path.join(ws.root, 'locked'), 0o000);
+    const hub = new EventHub();
+    const events: ServerEvent[] = [];
+    hub.subscribe((event) => events.push(event));
+    try {
+      const watcher = watchRoot(ws.root, hub);
+      try {
+        await watcher.ready;
+        await ws.write('ok.md', 'two\n');
+        const event = await waitFor(events, (candidate) => candidate.type === 'files-changed');
+        expect(event).toEqual({ type: 'files-changed', paths: ['ok.md'] });
+      } finally {
+        await watcher.close();
+      }
+    } finally {
+      await fs.chmod(path.join(ws.root, 'locked'), 0o755);
+    }
+  });
+
   it('reports a deleted file', async () => {
     await ws.write('a.md', 'one\n');
     const hub = new EventHub();
