@@ -11,6 +11,12 @@ export interface Draft {
   contentHash: string;
 }
 
+export interface Editing {
+  id: string;
+  pane: 'raw' | 'render';
+  text: string;
+}
+
 interface Store {
   session: SessionInfo | null;
   files: FileEntry[];
@@ -22,6 +28,7 @@ interface Store {
   connected: boolean;
   showResolved: boolean;
   draft: Draft | null;
+  editing: Editing | null;
   error: string | null;
   notice: string | null;
 }
@@ -40,6 +47,7 @@ export const store = reactive<Store>({
   connected: true,
   showResolved: false,
   draft: null,
+  editing: null,
   error: null,
   notice: null,
 });
@@ -91,6 +99,7 @@ function applyRoute(next: Route): void {
     store.fileView = null;
     store.fileError = null;
     store.draft = null;
+    store.editing = null;
     void loadFile();
   }
 }

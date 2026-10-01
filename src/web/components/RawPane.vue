@@ -51,7 +51,7 @@ function setDraftText(text: string): void {
         <span class="raw-text">{{ text }}</span>
       </div>
       <div v-if="byLine.has(index + 1) || hasDraft(index + 1)" class="raw-comments">
-        <CommentCard v-for="comment in byLine.get(index + 1)" :key="comment.id" :comment="comment" />
+        <CommentCard v-for="comment in byLine.get(index + 1)" :key="comment.id" :comment="comment" pane="raw" />
         <CommentForm
           v-if="hasDraft(index + 1)"
           :initial="store.draft?.text ?? ''"
