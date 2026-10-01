@@ -50,14 +50,16 @@ export async function readDiskFile(root: string, relPath: string): Promise<DiskF
 
 export async function assertReadableDir(dir: string): Promise<string> {
   const resolved = path.resolve(dir);
+  let real: string;
   try {
-    const stats = await fs.stat(resolved);
+    real = await fs.realpath(resolved);
+    const stats = await fs.stat(real);
     if (!stats.isDirectory()) throw new Error('not a directory');
-    await fs.readdir(resolved);
+    await fs.readdir(real);
   } catch {
     throw new HttpError(400, `Katalog nie istnieje lub nie można go odczytać: ${resolved}`);
   }
-  return resolved;
+  return real;
 }
 
 export async function listDirs(target: string | undefined): Promise<DirListing> {

@@ -193,6 +193,13 @@ describe('API routes', () => {
     expect(listing).toEqual({ path: ws.root, parent: path.dirname(ws.root), dirs: ['.claude', 'docs'] });
   });
 
+  it('resolves a symlinked directory to its real path', async () => {
+    await ws.write('docs/a.md', 'x\n');
+    const link = path.join(ws.home, 'linked');
+    await fs.symlink(path.join(ws.root, 'docs'), link);
+    expect(await assertReadableDir(link)).toBe(path.join(ws.root, 'docs'));
+  });
+
   it('changes the root and keeps the old one when the new one is unreadable', async () => {
     await ws.write('docs/a.md', 'x\n');
     const docs = path.join(ws.root, 'docs');
