@@ -146,7 +146,7 @@ onMounted(rebuild);
     </button>
     <div ref="body" class="render-body" @click="onClick"></div>
     <Teleport v-for="slot in slots" :key="slot.key" :to="slot.target">
-      <CommentCard v-for="comment in slot.comments" :key="comment.id" :comment="comment" />
+      <CommentCard v-for="comment in slot.comments" :key="comment.id" :comment="comment" pane="render" />
       <CommentForm
         v-if="slot.draft"
         :initial="store.draft?.text ?? ''"

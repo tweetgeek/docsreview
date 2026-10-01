@@ -150,3 +150,33 @@ test('double-clicking Save on a new draft creates exactly one comment', async ({
   await expect(page.locator('.file-path')).toHaveText('docs/guide.md');
   await expect(raw.locator('.comment', { hasText: 'podwójny klik' })).toHaveCount(1);
 });
+
+test('an edit of a comment in the rendered pane survives a change of the open file', async ({ page }) => {
+  await page.goto('/?token=e2e');
+  await page.locator('.tree-file', { hasText: 'guide.md' }).click();
+  const raw = page.locator('[data-pane="raw"]');
+  const render = page.locator('[data-pane="render"]');
+  const original = await fs.readFile(GUIDE, 'utf8');
+
+  await raw.locator('.raw-line').nth(2).hover();
+  await raw.getByRole('button', { name: 'Dodaj komentarz: 3', exact: true }).click();
+  await page.getByPlaceholder('Treść komentarza').fill('do edycji');
+  await page.keyboard.press('ControlOrMeta+Enter');
+  await expect(render.locator('.comment', { hasText: 'do edycji' })).toHaveCount(1);
+
+  await render.locator('.comment', { hasText: 'do edycji' }).getByRole('button', { name: 'Edytuj' }).click();
+  const editField = render.locator('.comment .comment-form textarea');
+  await editField.fill('po edycji');
+
+  await fs.writeFile(GUIDE, `Dopisana na górze.\n\n${original}`);
+  await expect(render.locator('p', { hasText: 'Dopisana na górze.' })).toBeVisible();
+  await expect(editField).toHaveValue('po edycji');
+
+  await render.locator('.comment .comment-form').getByRole('button', { name: 'Zapisz' }).click();
+  await expect(render.locator('.comment .comment-form')).toHaveCount(0);
+  await expect(render.locator('.comment', { hasText: 'po edycji' })).toHaveCount(1);
+  await expect(raw.locator('.comment', { hasText: 'po edycji' })).toHaveCount(1);
+
+  await fs.writeFile(GUIDE, original);
+  await expect(render.locator('p', { hasText: 'Dopisana na górze.' })).toHaveCount(0);
+});
