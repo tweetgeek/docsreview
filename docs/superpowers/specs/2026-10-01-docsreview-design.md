@@ -439,7 +439,7 @@ Komentarz otwarty ponownie zachowuje swoją kotwicę i `handedOffAt`. Jest „pr
 - Globalne reguły ignorowania gita i własny plik konfiguracyjny ze wzorcami.
 - Publikacja w npm. Struktura paczki (`bin`, zbudowany frontend w paczce) jest na nią gotowa; na start narzędzie uruchamia się lokalnie przez `npm link` lub `npx <ścieżka>`.
 - Bezpośrednia integracja z agentem (czytanie stanu przez agenta zamiast wklejania outputu).
-- Podświetlanie składni w panelu RAW.
+- Podświetlanie kodu w blokach kodu według języka.
 - Tłumaczenia interfejsu.
 
 ## 10. Doprecyzowania z realizacji
@@ -455,3 +455,5 @@ Ustalenia, które zapadły przy pisaniu planu i w trakcie implementacji. Uzupeł
 - **Katalogi bez uprawnień do odczytu (do 7):** są pomijane przez skaner i przez obserwatora; nie zatrzymują narzędzia.
 - **Katalog stanu wewnątrz katalogu roboczego (do 3.4):** jest pomijany przez skaner i obserwatora.
 - **Pusty plik (do 5.2):** ma w panelu RAW jeden pusty wiersz bez przycisku „+”.
+- **Podświetlanie składni (do 5.2):** panel RAW koloruje składnię markdown: nagłówki, znaczniki list i cytatów, linie poziome, płotki i treść bloków kodu, kod w linii, pogrubienie, kursywę, linki, znaczniki w nawiasach ostrych i frontmatter. Tekst linii się nie zmienia, a kod w blokach ma jeden kolor.
+- **Szerokość paneli (do 5.2 i 5.3):** panele RAW i RENDER oraz kolumny widoku „Komentarze” mają najwyżej 900 px każda i są wyśrodkowane w dostępnym miejscu; drzewo plików zostaje przy lewej krawędzi.
