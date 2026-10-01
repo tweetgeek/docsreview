@@ -47,7 +47,7 @@ function createMarkdown(): MarkdownIt {
   const defaultLinkOpen = md.renderer.rules.link_open;
   md.renderer.rules.link_open = (tokens, index, options, env, self) => {
     const token = tokens[index]!;
-    if (resolveLink('', token.attrGet('href') ?? '').kind === 'external') {
+    if (resolveLink('', String(token.attrGet('href') ?? '')).kind === 'external') {
       token.attrSet('target', '_blank');
       token.attrSet('rel', 'noopener noreferrer');
     }
