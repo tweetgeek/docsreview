@@ -231,3 +231,47 @@ test('panes keep a readable width on an ultrawide window', async ({ page }) => {
   const narrow = (await page.locator('.pane').nth(0).boundingBox())!;
   expect(Math.abs(narrow.width - (1280 - 280) / 2)).toBeLessThanOrEqual(1);
 });
+
+test('the font size control scales the document text and is remembered', async ({ page }) => {
+  await page.setViewportSize({ width: 3440, height: 1200 });
+  await page.goto('/?token=e2e');
+  await page.locator('.tree-file', { hasText: 'syntax.md' }).click();
+  await expect(page.locator('.file-path')).toHaveText('docs/syntax.md');
+
+  const fontSize = (selector: string): Promise<number> =>
+    page
+      .locator(selector)
+      .first()
+      .evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+  const value = page.locator('.font-scale-value');
+  const larger = page.getByRole('button', { name: 'Większa czcionka' });
+  const smaller = page.getByRole('button', { name: 'Mniejsza czcionka' });
+
+  await expect(value).toHaveText('100%');
+  const raw = await fontSize('[data-pane="raw"] .raw-text');
+  const render = await fontSize('[data-pane="render"] p');
+  const tree = await fontSize('.tree-row');
+
+  await larger.click();
+  await larger.click();
+  await expect(value).toHaveText('125%');
+  expect(await fontSize('[data-pane="raw"] .raw-text')).toBeCloseTo(raw * 1.25, 1);
+  expect(await fontSize('[data-pane="render"] p')).toBeCloseTo(render * 1.25, 1);
+  expect(await fontSize('.tree-row')).toBe(tree);
+  const pane = (await page.locator('.pane').first().boundingBox())!;
+  expect(Math.abs(pane.width - 1125)).toBeLessThanOrEqual(1);
+
+  await page.reload();
+  await expect(value).toHaveText('125%');
+  expect(await fontSize('[data-pane="raw"] .raw-text')).toBeCloseTo(raw * 1.25, 1);
+
+  await smaller.click();
+  await expect(value).toHaveText('110%');
+  await value.click();
+  await expect(value).toHaveText('100%');
+  expect(await fontSize('[data-pane="raw"] .raw-text')).toBeCloseTo(raw, 1);
+
+  for (let step = 0; step < 2; step++) await smaller.click();
+  await expect(value).toHaveText('80%');
+  await expect(smaller).toBeDisabled();
+});

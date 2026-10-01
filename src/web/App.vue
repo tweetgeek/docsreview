@@ -3,7 +3,8 @@ import { computed, onMounted, ref } from 'vue';
 import CommentsView from './components/CommentsView.vue';
 import DirPicker from './components/DirPicker.vue';
 import FilesView from './components/FilesView.vue';
-import { init, navigate, store } from './state.js';
+import { FONT_SCALES, formatFontScale, largerFontScale, smallerFontScale, DEFAULT_FONT_SCALE } from './lib/fontScale.js';
+import { init, navigate, setFontScale, store } from './state.js';
 import { t } from './strings.js';
 
 const pickerOpen = ref(false);
@@ -33,6 +34,35 @@ onMounted(init);
         </button>
       </nav>
       <span class="root" :title="store.session?.root">{{ store.session?.root }}</span>
+      <div class="font-scale" role="group" :aria-label="t.fontSize">
+        <button
+          type="button"
+          :title="t.fontSmaller"
+          :aria-label="t.fontSmaller"
+          :disabled="store.fontScale <= FONT_SCALES[0]!"
+          @click="setFontScale(smallerFontScale(store.fontScale))"
+        >
+          A−
+        </button>
+        <button
+          type="button"
+          class="font-scale-value"
+          :title="t.fontReset"
+          :aria-label="`${t.fontReset} (${formatFontScale(store.fontScale)})`"
+          @click="setFontScale(DEFAULT_FONT_SCALE)"
+        >
+          {{ formatFontScale(store.fontScale) }}
+        </button>
+        <button
+          type="button"
+          :title="t.fontLarger"
+          :aria-label="t.fontLarger"
+          :disabled="store.fontScale >= FONT_SCALES.at(-1)!"
+          @click="setFontScale(largerFontScale(store.fontScale))"
+        >
+          A+
+        </button>
+      </div>
       <button type="button" :disabled="!store.connected" @click="pickerOpen = true">{{ t.changeDir }}</button>
     </header>
     <div v-if="!store.connected" class="banner error" role="alert">{{ t.connectionLost }}</div>
