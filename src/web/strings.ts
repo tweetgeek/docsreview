@@ -3,6 +3,10 @@ export const t = {
   tabFiles: 'Pliki',
   tabComments: 'Komentarze',
   changeDir: 'Zmień katalog',
+  fontSize: 'Rozmiar czcionki',
+  fontSmaller: 'Mniejsza czcionka',
+  fontLarger: 'Większa czcionka',
+  fontReset: 'Domyślny rozmiar czcionki',
   connectionLost: 'Brak połączenia z serwerem. Ponawiam…',
   dismiss: 'Zamknij',
 

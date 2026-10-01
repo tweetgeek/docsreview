@@ -1,6 +1,7 @@
 import { reactive } from 'vue';
 import type { CommentsResponse, FileEntry, FileView, SessionInfo } from '../core/types.js';
 import { api, ApiError, initToken, openEvents, type CommentPatch } from './api.js';
+import { DEFAULT_FONT_SCALE, parseFontScale } from './lib/fontScale.js';
 import { formatRoute, parseRoute, type Route } from './lib/route.js';
 import { t } from './strings.js';
 
@@ -27,6 +28,7 @@ interface Store {
   focusLine: number | null;
   connected: boolean;
   showResolved: boolean;
+  fontScale: number;
   draft: Draft | null;
   editing: Editing | null;
   error: string | null;
@@ -35,6 +37,7 @@ interface Store {
 
 const REFRESH_DELAY_MS = 50;
 const NOTICE_MS = 4000;
+const FONT_SCALE_KEY = 'docsreview-font-scale';
 
 export const store = reactive<Store>({
   session: null,
@@ -46,6 +49,7 @@ export const store = reactive<Store>({
   focusLine: null,
   connected: true,
   showResolved: false,
+  fontScale: DEFAULT_FONT_SCALE,
   draft: null,
   editing: null,
   error: null,
@@ -140,8 +144,29 @@ function scheduleRefresh(): void {
   }, REFRESH_DELAY_MS);
 }
 
+export function setFontScale(scale: number): void {
+  store.fontScale = scale;
+  document.documentElement.style.setProperty('--font-scale', String(scale));
+  try {
+    localStorage.setItem(FONT_SCALE_KEY, String(scale));
+  } catch {
+    // the size still applies to this page view without storage
+  }
+}
+
+function restoreFontScale(): void {
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(FONT_SCALE_KEY);
+  } catch {
+    // fall back to the default size
+  }
+  setFontScale(parseFontScale(stored));
+}
+
 export async function init(): Promise<void> {
   initToken();
+  restoreFontScale();
   window.addEventListener('hashchange', () => applyRoute(parseRoute(location.hash)));
   await refresh();
   openEvents(scheduleRefresh, (connected) => {
