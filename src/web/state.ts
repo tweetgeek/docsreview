@@ -8,6 +8,7 @@ export interface Draft {
   line: number;
   pane: 'raw' | 'render';
   text: string;
+  contentHash: string;
 }
 
 interface Store {
@@ -155,8 +156,8 @@ async function run(action: () => Promise<unknown>): Promise<boolean> {
 }
 
 export function startDraft(line: number, pane: Draft['pane']): void {
-  if (!store.connected) return;
-  store.draft = { line, pane, text: '' };
+  if (!store.connected || store.fileView === null) return;
+  store.draft = { line, pane, text: '', contentHash: store.fileView.contentHash };
 }
 
 export async function submitDraft(text: string): Promise<void> {
@@ -164,15 +165,20 @@ export async function submitDraft(text: string): Promise<void> {
   const draft = store.draft;
   if (view === null || draft === null || text.trim() === '') return;
   draft.text = text;
+  let stale = false;
   try {
-    await api.addComment(view.path, draft.line, text, view.contentHash);
+    await api.addComment(view.path, draft.line, text, draft.contentHash);
     store.draft = null;
     store.error = null;
   } catch (error) {
-    const stale = error instanceof ApiError && error.status === 409;
+    stale = error instanceof ApiError && error.status === 409;
     store.error = stale ? t.fileChangedWhileCommenting : messageOf(error);
   }
   await refresh();
+  const current = store.fileView;
+  if (stale && store.draft === draft && current !== null && current.path === view.path) {
+    draft.contentHash = current.contentHash;
+  }
 }
 
 export function updateComment(id: string, patch: CommentPatch): Promise<boolean> {

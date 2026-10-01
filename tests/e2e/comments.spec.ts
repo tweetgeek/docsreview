@@ -66,53 +66,48 @@ test('comments from both panes are shared, editable and persistent', async ({ pa
   });
 });
 
-test('a draft is not lost when files change while typing', async ({ page }) => {
+test('a draft survives file changes and saving it on a changed file asks to check the line', async ({ page }) => {
   await page.goto('/?token=e2e');
   await page.locator('.tree-file', { hasText: 'guide.md' }).click();
+  const raw = page.locator('[data-pane="raw"]');
   const render = page.locator('[data-pane="render"]');
   const field = page.getByPlaceholder('Treść komentarza');
+  const original = await fs.readFile(GUIDE, 'utf8');
 
   await render.locator('li', { hasText: 'krok pierwszy' }).hover();
   await render.getByRole('button', { name: 'Dodaj komentarz: 5', exact: true }).click();
   await field.fill('w trakcie pisania');
 
-  await fs.writeFile(path.join(ROOT, 'docs/later.md'), '# Później\n');
-  await expect(page.locator('.tree-file', { hasText: 'later.md' })).toBeVisible();
-  await expect(field).toHaveValue('w trakcie pisania');
+  await test.step('the typed text survives a refresh caused by another file appearing', async () => {
+    await fs.writeFile(path.join(ROOT, 'docs/later.md'), '# Później\n');
+    await expect(page.locator('.tree-file', { hasText: 'later.md' })).toBeVisible();
+    await expect(field).toHaveValue('w trakcie pisania');
+  });
 
-  const original = await fs.readFile(GUIDE, 'utf8');
-  await fs.writeFile(GUIDE, `Nowa pierwsza linia.\n\n${original}`);
-  await expect(render.locator('p', { hasText: 'Nowa pierwsza linia.' })).toBeVisible();
-  await expect(field).toHaveValue('w trakcie pisania');
+  await test.step('the typed text survives a change of the open file', async () => {
+    await fs.writeFile(GUIDE, `Nowa pierwsza linia.\n\n${original}`);
+    await expect(render.locator('p', { hasText: 'Nowa pierwsza linia.' })).toBeVisible();
+    await expect(field).toHaveValue('w trakcie pisania');
+  });
+
+  await test.step('saving on the changed file asks to check the line and creates no comment', async () => {
+    await page.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(page.getByRole('alert')).toContainText('Plik zmienił się w trakcie pisania');
+    await expect(field).toHaveValue('w trakcie pisania');
+    await expect(page.locator('.comment', { hasText: 'w trakcie pisania' })).toHaveCount(0);
+  });
+
+  await test.step('saving again creates the comment on the draft line in the current content', async () => {
+    await page.getByRole('button', { name: 'Zapisz' }).click();
+    await expect(field).toHaveCount(0);
+    await expect(render.locator('.comment', { hasText: 'w trakcie pisania' })).toHaveCount(1);
+    await expect(raw.locator('.raw-line[data-line-start="5"] + .raw-comments .comment')).toContainText(
+      'w trakcie pisania',
+    );
+  });
 
   await fs.writeFile(GUIDE, original);
   await expect(render.locator('p', { hasText: 'Nowa pierwsza linia.' })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(render.locator('.comment', { hasText: 'w trakcie pisania' })).toBeVisible();
-});
-
-test('saving a comment on a file that just changed asks to check the line', async ({ page }) => {
-  await page.goto('/?token=e2e');
-  await page.locator('.tree-file', { hasText: 'guide.md' }).click();
-  const raw = page.locator('[data-pane="raw"]');
-  const field = page.getByPlaceholder('Treść komentarza');
-
-  await raw.locator('.raw-line').nth(0).hover();
-  await raw.getByRole('button', { name: 'Dodaj komentarz: 1', exact: true }).click();
-  await field.fill('tytuł do zmiany');
-
-  await page.route(/\/api\/file\?/, (route) => route.abort());
-  const original = await fs.readFile(GUIDE, 'utf8');
-  await fs.writeFile(GUIDE, `${original}\nDopisana linia.\n`);
-  await expect(page.getByRole('alert')).toContainText('Brak połączenia');
-  await page.unroute(/\/api\/file\?/);
-  await page.getByRole('button', { name: 'Zapisz' }).click();
-
-  await expect(page.getByRole('alert')).toContainText('Plik zmienił się w trakcie pisania');
-  await expect(field).toHaveValue('tytuł do zmiany');
-  await expect(raw.locator('.raw-line')).toHaveCount(8);
-  await page.getByRole('button', { name: 'Zapisz' }).click();
-  await expect(raw.locator('.comment', { hasText: 'tytuł do zmiany' })).toBeVisible();
 });
 
 test('a file name with spaces, Polish letters and a hash sign opens and survives a reload', async ({ page }) => {
