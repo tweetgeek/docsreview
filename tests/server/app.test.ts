@@ -6,7 +6,7 @@ import type { CommentsResponse, FileEntry, FileView, ServerEvent, SessionInfo } 
 import { createApp, type AppContext } from '../../src/server/app.js';
 import { EventHub } from '../../src/server/events.js';
 import { assertReadableDir } from '../../src/server/files.js';
-import { isAllowedUrl, tokenMatches } from '../../src/server/security.js';
+import { createToken, isAllowedUrl, tokenMatches } from '../../src/server/security.js';
 import { makeWorkspace, type Workspace } from '../helpers/tmp.js';
 
 const TOKEN = 'test-token';
@@ -73,6 +73,17 @@ describe('security helpers', () => {
     expect(isAllowedUrl('http://127.0.0.1.evil.example:4477/api/files', 4477)).toBe(false);
     expect(isAllowedUrl('not a url', 4477)).toBe(false);
   });
+
+  it('treats an empty DOCSREVIEW_TOKEN as unset', () => {
+    const previous = process.env.DOCSREVIEW_TOKEN;
+    process.env.DOCSREVIEW_TOKEN = '';
+    try {
+      expect(createToken()).toMatch(/^[0-9a-f]{48}$/);
+    } finally {
+      if (previous === undefined) delete process.env.DOCSREVIEW_TOKEN;
+      else process.env.DOCSREVIEW_TOKEN = previous;
+    }
+  });
 });
 
 describe('API access', () => {
@@ -87,6 +98,11 @@ describe('API access', () => {
       headers: { authorization: `Bearer ${TOKEN}` },
     });
     expect(response.status).toBe(403);
+  });
+
+  it('answers 401 for the event stream without a token', async () => {
+    expect((await app.request(`${ORIGIN}/api/events`)).status).toBe(401);
+    expect((await app.request(`${ORIGIN}/api/events?token=`)).status).toBe(401);
   });
 
   it('does not accept the token as a query parameter outside the event stream', async () => {

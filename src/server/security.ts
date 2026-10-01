@@ -3,7 +3,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 const LOCAL_HOSTNAMES = new Set(['127.0.0.1', 'localhost']);
 
 export function createToken(): string {
-  return process.env.DOCSREVIEW_TOKEN ?? randomBytes(24).toString('hex');
+  return process.env.DOCSREVIEW_TOKEN || randomBytes(24).toString('hex');
 }
 
 export function tokenMatches(provided: string | undefined, expected: string): boolean {
