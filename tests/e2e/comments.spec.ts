@@ -128,3 +128,13 @@ test('a file name with spaces, Polish letters and a hash sign opens and survives
   await expect(page.locator('.main .empty')).toHaveText('Plik nie istnieje.');
   await expect(page.locator('.tree-file', { hasText: 'Plan wdrożenia #2.md' })).toHaveCount(0);
 });
+
+test('a relative link to a markdown file opens it in the same tab', async ({ page }) => {
+  await page.goto('/?token=e2e');
+  await page.locator('.tree-file', { hasText: 'links.md' }).click();
+  await expect(page.locator('.file-path')).toHaveText('docs/links.md');
+
+  await page.locator('[data-pane="render"] a', { hasText: 'przewodnik' }).click();
+  await expect(page.locator('.file-path')).toHaveText('docs/guide.md');
+  expect(page.context().pages()).toHaveLength(1);
+});

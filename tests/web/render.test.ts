@@ -94,11 +94,17 @@ describe('renderMarkdown', () => {
     expect(html).not.toContain('<script>');
   });
 
-  it('does not load images and opens links in a new tab without a referrer', () => {
-    const html = renderMarkdown('![alt](https://example.com/x.png)\n\n[link](https://example.com)\n\n[bad](javascript:alert(1))\n');
+  it('does not load images and opens only external links in a new tab without a referrer', () => {
+    const html = renderMarkdown(
+      '![alt](https://example.com/x.png)\n\n[link](https://example.com)\n\n[mail](mailto:a@example.com)\n\n' +
+        '[bad](javascript:alert(1))\n\n[adr](adr/0001.md)\n\n[top](#title)\n',
+    );
     expect(html).not.toContain('<img');
     expect(html).toContain('<a href="https://example.com" target="_blank" rel="noopener noreferrer">link</a>');
+    expect(html).toContain('<a href="mailto:a@example.com" target="_blank" rel="noopener noreferrer">mail</a>');
     expect(html).not.toContain('href="javascript:');
+    expect(html).toContain('<a href="adr/0001.md">adr</a>');
+    expect(html).toContain('<a href="#title">top</a>');
   });
 
   it('renders frontmatter as a table and offsets the body lines', () => {

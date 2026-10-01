@@ -1,6 +1,7 @@
 import Markdown, { type MarkdownIt, type RendererRule } from 'markdown-it';
 import { splitLines } from '../../core/lines.js';
 import { parseFrontmatter, type Frontmatter } from './frontmatter.js';
+import { resolveLink } from './links.js';
 
 interface RenderEnv {
   lineOffset?: number;
@@ -45,8 +46,11 @@ function createMarkdown(): MarkdownIt {
 
   const defaultLinkOpen = md.renderer.rules.link_open;
   md.renderer.rules.link_open = (tokens, index, options, env, self) => {
-    tokens[index]!.attrSet('target', '_blank');
-    tokens[index]!.attrSet('rel', 'noopener noreferrer');
+    const token = tokens[index]!;
+    if (resolveLink('', token.attrGet('href') ?? '').kind === 'external') {
+      token.attrSet('target', '_blank');
+      token.attrSet('rel', 'noopener noreferrer');
+    }
     return defaultLinkOpen ? defaultLinkOpen(tokens, index, options, env, self) : self.renderToken(tokens, index, options);
   };
 

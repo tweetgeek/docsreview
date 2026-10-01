@@ -2,8 +2,9 @@
 import { computed, nextTick, onMounted, ref, shallowRef, watch } from 'vue';
 import type { CommentView, FileView } from '../../core/types.js';
 import { findBlockIndex } from '../lib/blocks.js';
+import { resolveLink } from '../lib/links.js';
 import { renderMarkdown } from '../lib/render.js';
-import { startDraft, store, submitDraft } from '../state.js';
+import { openFile, startDraft, store, submitDraft } from '../state.js';
 import { t } from '../strings.js';
 import CommentCard from './CommentCard.vue';
 import CommentForm from './CommentForm.vue';
@@ -113,6 +114,15 @@ function onHover(event: MouseEvent): void {
   };
 }
 
+function onClick(event: MouseEvent): void {
+  const link = (event.target as HTMLElement).closest('a');
+  if (link === null) return;
+  const target = resolveLink(props.view.path, link.getAttribute('href') ?? '');
+  if (target.kind === 'external') return;
+  event.preventDefault();
+  if (target.kind === 'file') openFile(target.path);
+}
+
 function setDraftText(text: string): void {
   if (store.draft !== null) store.draft.text = text;
 }
@@ -134,7 +144,7 @@ onMounted(rebuild);
     >
       +
     </button>
-    <div ref="body" class="render-body"></div>
+    <div ref="body" class="render-body" @click="onClick"></div>
     <Teleport v-for="slot in slots" :key="slot.key" :to="slot.target">
       <CommentCard v-for="comment in slot.comments" :key="comment.id" :comment="comment" />
       <CommentForm
