@@ -441,3 +441,17 @@ Komentarz otwarty ponownie zachowuje swoją kotwicę i `handedOffAt`. Jest „pr
 - Bezpośrednia integracja z agentem (czytanie stanu przez agenta zamiast wklejania outputu).
 - Podświetlanie składni w panelu RAW.
 - Tłumaczenia interfejsu.
+
+## 10. Doprecyzowania z realizacji
+
+Ustalenia, które zapadły przy pisaniu planu i w trakcie implementacji. Uzupełniają wcześniejsze punkty; tam, gdzie się różnią, obowiązuje ten punkt.
+
+- **Wersja Node (do 3.1):** paczka wymaga Node 20.19 lub nowszego, bo tego wymagają chokidar 5 i Vite 8. Praca nad projektem wymaga Node 22.12 lub nowszego (Vitest 5).
+- **Tożsamość katalogu roboczego (do 6.1):** katalog roboczy jest rozwijany do rzeczywistej ścieżki, więc ten sam katalog otwarty przez dowiązanie symboliczne ma to samo review.
+- **Obrazy (do 5.2):** nie są renderowane; `![alt](url)` zostaje w panelu RENDER jako tekst.
+- **Linki (do 5.2):** link względny do pliku `.md` wewnątrz katalogu roboczego otwiera ten plik w narzędziu. Linki do kotwic (`#…`) i pozostałe linki względne nic nie robią. Tylko linki bezwzględne `http`, `https` i `mailto` otwierają się w nowej karcie, bez przekazywania adresu źródłowego.
+- **Zwijanie ignorowanych katalogów (do 5.2):** katalog ignorowany jest domyślnie zwinięty tylko wtedy, gdy nie ma w nim otwartych komentarzy i gdy w drzewie są też pliki nieignorowane.
+- **Szkic komentarza a zmiana pliku (do 6.7):** szkic pamięta wersję pliku, przy której został otwarty. Zapis po zmianie pliku pokazuje komunikat i niczego nie tworzy; dopiero drugi zapis, po sprawdzeniu linii, dodaje komentarz. Wpisany tekst nowego komentarza i edytowanego komentarza przetrwa odświeżenie paneli.
+- **Katalogi bez uprawnień do odczytu (do 7):** są pomijane przez skaner i przez obserwatora; nie zatrzymują narzędzia.
+- **Katalog stanu wewnątrz katalogu roboczego (do 3.4):** jest pomijany przez skaner i obserwatora.
+- **Pusty plik (do 5.2):** ma w panelu RAW jeden pusty wiersz bez przycisku „+”.
