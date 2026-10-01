@@ -13,6 +13,10 @@ export interface RootWatcher {
   close(): Promise<void>;
 }
 
+function warnWatchError(error: unknown): void {
+  console.warn(`DocsReview: błąd obserwowania plików: ${error instanceof Error ? error.message : String(error)}`);
+}
+
 export function watchRoot(root: string, hub: EventHub): RootWatcher {
   const home = homeDir();
   const pending = new Set<string>();
@@ -22,6 +26,7 @@ export function watchRoot(root: string, hub: EventHub): RootWatcher {
   const files = chokidar.watch(root, {
     ignoreInitial: true,
     followSymlinks: false,
+    ignorePermissionErrors: true,
     ignored: (target, stats) => {
       if (target === home || target.startsWith(home + path.sep)) return true;
       if (path.relative(root, target).split(path.sep).some(isAlwaysSkipped)) return true;
@@ -29,6 +34,7 @@ export function watchRoot(root: string, hub: EventHub): RootWatcher {
       return false;
     },
   });
+  files.on('error', warnWatchError);
   files.on('all', (event, target) => {
     if (event === 'addDir' || event === 'unlinkDir') return;
     pending.add(path.relative(root, target).split(path.sep).join('/'));
@@ -42,7 +48,8 @@ export function watchRoot(root: string, hub: EventHub): RootWatcher {
 
   const stateDir = reviewDir(root);
   mkdirSync(stateDir, { recursive: true });
-  const state = chokidar.watch(stateDir, { ignoreInitial: true, depth: 0 });
+  const state = chokidar.watch(stateDir, { ignoreInitial: true, depth: 0, ignorePermissionErrors: true });
+  state.on('error', warnWatchError);
   state.on('all', (_event, target) => {
     if (path.basename(target) !== 'state.json') return;
     stateTimer ??= setTimeout(() => {
