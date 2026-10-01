@@ -2,7 +2,6 @@
 import { fileURLToPath } from 'node:url';
 import open from 'open';
 import { parseCliArgs, USAGE, type CliArgs } from './args.js';
-import { HttpError } from './errors.js';
 import { startServer, type RunningServer } from './start.js';
 
 function fail(message: string): never {
@@ -27,14 +26,19 @@ async function main(): Promise<void> {
   try {
     server = await startServer({ root: args.root, port: args.port, webDir });
   } catch (error) {
-    if (error instanceof HttpError) fail(error.message);
-    throw error;
+    fail(error instanceof Error ? error.message : String(error));
   }
 
   console.log(`DocsReview działa: ${server.url}`);
   console.log(`Katalog roboczy:   ${server.root}`);
   console.log('Zatrzymanie: Ctrl+C');
-  if (args.open) await open(server.url);
+  if (args.open) {
+    try {
+      await open(server.url);
+    } catch {
+      console.warn('Nie udało się otworzyć przeglądarki. Otwórz powyższy adres samodzielnie.');
+    }
+  }
 
   const shutdown = (): void => {
     void server.close().finally(() => process.exit(0));
