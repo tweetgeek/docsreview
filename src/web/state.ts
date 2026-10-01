@@ -160,7 +160,20 @@ export function startDraft(line: number, pane: Draft['pane']): void {
   store.draft = { line, pane, text: '', contentHash: store.fileView.contentHash };
 }
 
+let submitting = false;
+let handingOff = false;
+
 export async function submitDraft(text: string): Promise<void> {
+  if (submitting) return;
+  submitting = true;
+  try {
+    await saveDraft(text);
+  } finally {
+    submitting = false;
+  }
+}
+
+async function saveDraft(text: string): Promise<void> {
   const view = store.fileView;
   const draft = store.draft;
   if (view === null || draft === null || text.trim() === '') return;
@@ -211,6 +224,16 @@ export async function changeRoot(path: string): Promise<boolean> {
 }
 
 export async function copyAndHandOff(): Promise<boolean> {
+  if (handingOff) return false;
+  handingOff = true;
+  try {
+    return await copyThenHandOff();
+  } finally {
+    handingOff = false;
+  }
+}
+
+async function copyThenHandOff(): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(store.comments.output);
   } catch {

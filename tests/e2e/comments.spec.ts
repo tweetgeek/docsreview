@@ -133,3 +133,20 @@ test('a relative link to a markdown file opens it in the same tab', async ({ pag
   await expect(page.locator('.file-path')).toHaveText('docs/guide.md');
   expect(page.context().pages()).toHaveLength(1);
 });
+
+test('double-clicking Save on a new draft creates exactly one comment', async ({ page }) => {
+  await page.goto('/?token=e2e');
+  await page.locator('.tree-file', { hasText: 'guide.md' }).click();
+  const raw = page.locator('[data-pane="raw"]');
+
+  await raw.locator('.raw-line').nth(0).hover();
+  await raw.getByRole('button', { name: 'Dodaj komentarz: 1', exact: true }).click();
+  await page.getByPlaceholder('Treść komentarza').fill('podwójny klik');
+  await page.getByRole('button', { name: 'Zapisz' }).dblclick();
+
+  await expect(raw.locator('.comment', { hasText: 'podwójny klik' })).toHaveCount(1);
+  await page.waitForTimeout(500);
+  await page.reload();
+  await expect(page.locator('.file-path')).toHaveText('docs/guide.md');
+  await expect(raw.locator('.comment', { hasText: 'podwójny klik' })).toHaveCount(1);
+});
